@@ -1,0 +1,51 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Test and coverage caches
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Type checker and linter caches
+.mypy_cache/
+.ruff_cache/
+.pyright/
+
+# Build and packaging output
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Local PLAN2SHOW configuration and generated workspace content
+plan2show_config.json
+tracks/
+export_macros/
+stage_profiles/
+
+# Temporary Office files
+~$*.xlsx
+~$*.xlsm
+
+# Editor and operating-system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Temporary and backup files
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
