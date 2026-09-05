@@ -59,7 +59,7 @@ sudo apt install python3-openpyxl python3-pytest
 Clone or download the repository, then open a terminal in the project directory:
 
 ```bash
-git clone <REPOSITORY_URL>
+git clone https://github.com/federicorossatto/PLAN2SHOW.git
 cd PLAN2SHOW
 ```
 
@@ -79,6 +79,8 @@ python3 plan2show.py
 
 ## Project structure
 
+Current repository contents:
+
 ```text
 PLAN2SHOW/
 ├── plan2show.py
@@ -90,10 +92,6 @@ PLAN2SHOW/
 ├── requirements.txt
 ├── README.md
 ├── LICENSE
-├── .gitignore
-├── docs/
-│   ├── PLAN2SHOW_User_Manual.tex
-│   └── PLAN2SHOW_User_Manual.pdf
 └── tests/
     ├── conftest.py
     ├── test_actions.py
@@ -105,6 +103,10 @@ PLAN2SHOW/
     ├── test_timecode.py
     └── test_validation.py
 ```
+
+At first launch, PLAN2SHOW also creates a local, machine-specific `plan2show_config.json` next to `plan2show.py` and a `workspace/` (see [Workspace](#workspace)). These are runtime data, not part of the repository, and are excluded via `.gitignore`.
+
+Planned but not yet included: `docs/` with a LaTeX-sourced user manual. See [Documentation](#documentation).
 
 ### Modules
 
@@ -155,7 +157,7 @@ The main menu provides:
 
 ## Workspace
 
-At first launch, PLAN2SHOW asks where the workspace should be stored. The selected location is saved in `plan2show_config.json` next to `plan2show.py`.
+At first launch, PLAN2SHOW asks where the workspace should be stored. The selected location is saved in `plan2show_config.json` next to `plan2show.py`. This file is local to your machine and is not tracked by git.
 
 ```text
 workspace/
@@ -213,6 +215,8 @@ The track title is stored in cell `B2` of `TIMELINE` and is used when naming the
 Rows containing neither `Actions` nor `BPM` are skipped because they contain nothing to execute.
 
 Do not rename the `TIMELINE` sheet or its required columns.
+
+> **BPM column vs. `BPM Show` action:** if a row sets a value in the `BPM` column **and** also includes a `BPM Show: X BPM` action in the same row, both commands are compiled into the same cue and applied in sequence — the Actions-column value is applied last and silently overrides the column value. Use only one of the two per row to avoid ambiguity.
 
 ---
 
@@ -504,6 +508,8 @@ Unrecognized Actions are inserted as raw command text and produce a warning cont
 
 Review every warning before using the exported macro.
 
+PLAN2SHOW does **not** currently detect or warn about a row that sets both the `BPM` column and a `BPM Show` action at once (see [Timeline columns](#timeline-columns)).
+
 ---
 
 ## Automated tests
@@ -611,6 +617,7 @@ Do not treat a successful import or a green test suite as the only acceptance cr
 - Relative cue timing currently uses Minutes and Seconds; no dedicated per-cue Frames column is provided yet.
 - Supported frame rates are 24, 25 and 30 FPS.
 - Unsupported or misspelled Actions may be inserted as raw console text.
+- If a row combines a `BPM` column value with a `BPM Show` action, the Actions value silently overrides the column value; PLAN2SHOW does not warn about this (see [Timeline columns](#timeline-columns)).
 - PLAN2SHOW generates command text but does not connect directly to the console.
 - Fixture patching, presets, effects, timecode routing and console configuration remain the operator's responsibility.
 - Automated tests cannot reproduce every real console or show-file state.
@@ -637,14 +644,9 @@ Before using a generated macro:
 
 ## Documentation
 
-The complete user manual is intended to be included in source and compiled form:
+This README is currently the complete and only documentation for PLAN2SHOW: installation, workflow, Actions syntax, stage profiles, timecode setup, troubleshooting and known limitations are all covered above.
 
-```text
-docs/PLAN2SHOW_User_Manual.tex
-docs/PLAN2SHOW_User_Manual.pdf
-```
-
-The README provides installation and operational essentials. The full manual provides detailed workflow, stage-profile configuration, timecode setup, examples and troubleshooting.
+A dedicated user manual (LaTeX source and compiled PDF, under `docs/`) is planned for a future release and is not yet part of the repository.
 
 ---
 
