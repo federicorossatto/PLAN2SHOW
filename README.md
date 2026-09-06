@@ -1,33 +1,34 @@
 # PLAN2SHOW
 
-**PLAN2SHOW** is an AI-assisted Python command-line tool created and directed by **Federico Rossatto**. It converts lighting timelines programmed in Excel into ready-to-paste command macros for **MA Lighting dot2 / dot2 onPC** workflows.
+**PLAN2SHOW** is a Python command-line tool created and directed by **Federico Rossatto**. It reads a lighting cue list from an Excel worksheet and converts it into ready-to-paste command macros for **MA Lighting dot2 / dot2 onPC**.
 
-Each Excel row represents a cue. PLAN2SHOW reads the workbook, resolves human-friendly fixture names, groups, presets, effects and BPM changes through a reusable stage profile, applies an absolute timecode start offset, and exports a macro that can be pasted into the dot2 command line.
+Development of PLAN2SHOW was AI-assisted (see [AI-assisted development](#ai-assisted-development)); the application itself does not include any AI component. It is a deterministic compiler: identical input consistently produces identical output.
 
-> **Project status:** pre-release development version. Always inspect and test generated commands in dot2/onPC before using them during rehearsals or live performances.
+> **Project status:** pre-release, under active development. Generated commands must always be inspected and tested in dot2/onPC before use in rehearsal or during a live performance.
+
+---
+
+## Purpose
+
+Running a timecode-driven show typically requires calculating the exact absolute time of each lighting change and entering the corresponding commands into the console individually. This process is time-consuming and error-prone.
+
+PLAN2SHOW allows the cue list to be prepared in a standard Excel worksheet instead: one row per cue, specifying when it occurs (relative to the start of the track, e.g. "4 minutes in") and what it does, expressed in plain terms (e.g. `Sides: Blue, 30%`). PLAN2SHOW reads the worksheet, calculates the absolute timecode for each cue, translates the plain-text actions into dot2 commands using a configuration file referred to as a **stage profile** (which maps fixture and group names to the corresponding dot2 references), and produces a single block of text to be pasted into the dot2 command line.
+
+In summary: the show is described in Excel, and PLAN2SHOW converts it into the corresponding dot2 commands with the correct timecodes, removing the need for manual calculation and entry.
 
 ---
 
 ## Features
 
-- Formatted `.xlsx` track editor with `TIMELINE` and `HELP` sheets
-- One Excel row per lighting cue
-- Relative cue timing with an absolute show start time
-- Flexible start-time input such as `1`, `1:2`, `1:2:30` and `1:2:30:12`
-- Support for 24, 25 and 30 FPS
-- Frame-based timecode calculations and automatic rollovers
-- Human-friendly fixture and group aliases through JSON stage profiles
-- Custom Actions syntax for intensities, colors, presets, effects and Stomp
-- Fixture ranges with `..`
-- Fixture combinations with `+`
-- BPM changes synchronized with cue timecode
-- Cue Fade assignment
-- Persistent workspace and active stage profile
-- Duplicate cue detection and workbook validation
-- Warning messages containing Cue Number and Excel row
-- Protection against accidental output-file overwrites
-- Modular project structure
-- Automated test suite covering critical compiler behavior
+- **Cue list authored in Excel.** One row per cue, specifying timing and the corresponding action.
+- **Automatic timecode calculation.** Cue times are entered relative to the start of the track; PLAN2SHOW calculates the corresponding absolute, frame-accurate timecode, including correct rollovers, for 24, 25 or 30 FPS shows.
+- **Plain-text action syntax.** Actions such as `Sides: Blue, 30%` or `Pars: StopFX` are translated into dot2 commands via the stage profile, which maps fixture, group and command names.
+- **Fixture ranges and combinations**, e.g. `White 1..White 4` or `Blinder 1+Blinder 2`.
+- **BPM changes** synchronized with the cue's timecode.
+- **Per-cue fade time**, written automatically into the cue command.
+- **Persistent configuration**: workspace directory and active stage profile are retained between sessions.
+- **Early error detection**: duplicate cue numbers, missing columns, out-of-range values and similar issues are reported before export, together with the cue number and Excel row.
+- Supported by an automated test suite that verifies core compiler behavior on every change (see [Automated tests](#automated-tests)).
 
 ---
 
@@ -36,7 +37,7 @@ Each Excel row represents a cue. PLAN2SHOW reads the workbook, resolves human-fr
 - Python 3.10 or newer recommended
 - `openpyxl`
 - `pytest` to run the automated tests
-- Microsoft Excel or LibreOffice Calc to edit track workbooks
+- Microsoft Excel, LibreOffice Calc or OnlyOffice to edit track workbooks
 - MA Lighting dot2 or dot2 onPC to test and use generated macros
 
 Install dependencies with:
@@ -45,12 +46,7 @@ Install dependencies with:
 python3 -m pip install -r requirements.txt
 ```
 
-On Linux distributions that manage Python packages through the operating system:
-
-```bash
-sudo apt update
-sudo apt install python3-openpyxl python3-pytest
-```
+On Linux, `openpyxl` and `pytest` are typically also available through the distribution's package manager, as an alternative to pip.
 
 ---
 
@@ -137,6 +133,8 @@ The main menu provides:
 4. Exit
 ```
 
+*Note for first-time use: option 2 should be used to create the Excel template before option 1 is used to compile it.*
+
 ### First workflow
 
 1. Start PLAN2SHOW.
@@ -191,7 +189,7 @@ Option `2` creates an `.xlsx` workbook containing two sheets.
 
 ### `TIMELINE`
 
-The operational lighting timeline read by PLAN2SHOW.
+The operational lighting cue list read by PLAN2SHOW.
 
 ### `HELP`
 
@@ -207,7 +205,7 @@ The track title is stored in cell `B2` of `TIMELINE` and is used when naming the
 | `Name` | No | Cue name; a blank value becomes `Cue N` |
 | `Minutes` | Yes | Minutes relative to the beginning of the track |
 | `Seconds` | Yes | Seconds relative to the track, from 0 to 59 |
-| `Fade` | Yes | Cue Fade in seconds, zero or greater |
+| `Fade` | Yes | Cue transition time (fade), in seconds, zero or greater |
 | `BPM` | No | Whole-number BPM change synchronized with the cue |
 | `Actions` | Usually | Lighting and runtime commands written with PLAN2SHOW syntax |
 | `Director Notes` | No | Production notes ignored by the compiler |
@@ -289,6 +287,23 @@ Stomp Fixture 9 Thru 12
 ```
 
 BPM commands are placed in the timecode-triggered cue command so they run with the cue instead of running immediately when the macro is pasted.
+
+---
+
+## Scope: what PLAN2SHOW does and does not do
+
+This section defines the boundaries of what PLAN2SHOW is able to interpret.
+
+**What it does:** PLAN2SHOW translates the contents of the `Actions` column into dot2 command text, based on the mapping defined in the active stage profile (fixture patch, groups, and named commands/presets). It also calculates the correct absolute timecode and fade value for each cue, and assembles the result into a single macro for pasting into dot2.
+
+**What it does not do:** PLAN2SHOW has no knowledge of lighting design. It does not evaluate colour, position or effect parameters; it reproduces whatever command text has been defined in the stage profile for a given name. In particular:
+
+- **Moving heads (pan/tilt, positions):** PLAN2SHOW does not calculate or assign a position. To trigger a moving-head position from a cue, the position must first be stored as a Preset in dot2, and the corresponding stage-profile command must reference that preset (e.g. `"Center Stage": "At Preset 7.3"`). The Actions syntax triggers the preset; PLAN2SHOW does not compute pan/tilt values.
+- **Colour, intensity, effects:** the same principle applies — PLAN2SHOW triggers the preset, effect or level number configured in the stage profile. It does not process colour mixing, DMX values or effect parameters.
+- **Anything absent from the active stage profile:** a fixture, group or command not defined in the stage profile cannot be resolved. Unrecognized actions are inserted as raw text with a warning, but are not validated against the actual dot2 show file.
+- **Console communication:** PLAN2SHOW does not connect to dot2 directly; the generated macro must be copied and pasted manually.
+
+See also [Known limitations](#known-limitations) for additional constraints.
 
 ---
 
@@ -568,22 +583,11 @@ Automated tests reduce regression risk but do not replace testing the exported m
 
 ## AI-assisted development
 
-PLAN2SHOW is a **vibe-coded, AI-assisted software project** created and directed by **Federico Rossatto**.
+PLAN2SHOW itself contains no AI component; it is a deterministic compiler. The term "AI-assisted" refers to how the software was developed, not to its runtime behavior.
 
-AI tools were used to support:
+Federico Rossatto defined the project concept, the lighting workflow, the Excel/Actions syntax, the stage-profile format, and all operational decisions, and used AI tools to assist with writing, debugging, refactoring, documentation and test generation.
 
-- code generation;
-- debugging;
-- refactoring;
-- documentation;
-- automated-test generation;
-- review of possible edge cases.
-
-The project concept, lighting workflow, feature requirements, stage-profile design, operational decisions and final acceptance were defined by the project author.
-
-AI-generated or AI-assisted code can contain mistakes. For this reason, PLAN2SHOW includes automated tests, input validation, explicit warnings and a requirement to inspect generated commands before live use.
-
-The use of AI-assisted development does not mean the software is guaranteed to be correct or safe for every console, show file, fixture patch or production environment.
+AI-assisted code can still contain errors. For this reason, PLAN2SHOW includes automated tests, input validation and explicit warnings, and this documentation repeatedly recommends verifying generated commands before live use. None of these measures guarantee correctness or safety for every console, show file, fixture patch or production environment.
 
 ---
 
@@ -611,6 +615,8 @@ Do not treat a successful import or a green test suite as the only acceptance cr
 ---
 
 ## Known limitations
+
+For what the Actions syntax can and cannot control (e.g. moving heads), see [Scope: what PLAN2SHOW does and does not do](#scope-what-plan2show-does-and-does-not-do) above.
 
 - Input workbooks must use `.xlsx`.
 - The `TIMELINE` sheet and required column names must not be renamed.
